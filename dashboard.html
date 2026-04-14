@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lighthouse Adoption Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --navy:#0F2341; --blue:#1B4F8A; --teal:#00A3AD;
+      --orange:#FF6B35; --light:#F4F6F9; --white:#FFFFFF;
+      --border:#DDE3EC; --text:#1A2B45; --muted:#6B7A99;
+      --green:#00875A; --red:#DE350B; --purple:#9B59B6;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:var(--light);color:var(--text);font-size:14px;}
+
+    header{background:var(--navy);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--teal);}
+    .hl{display:flex;align-items:center;gap:14px;}
+    .logo{width:32px;height:32px;background:var(--teal);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    header h1{color:white;font-size:1.05rem;font-weight:600;}
+    header .sub{color:rgba(255,255,255,0.45);font-size:0.78rem;}
+    .hr{color:rgba(255,255,255,0.5);font-size:0.78rem;}
+
+    .tab-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;display:flex;}
+    .tab-btn{padding:14px 20px;border:none;background:none;color:var(--muted);font-size:0.875rem;font-weight:500;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;}
+    .tab-btn:hover{color:var(--blue);}
+    .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:600;}
+
+    .tab-content{display:none;padding:24px 28px;}
+    .tab-content.active{display:block;}
+
+    .filter-bar{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:20px;}
+    .fg{display:flex;flex-direction:column;gap:4px;}
+    .fg label{font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .fg select,.fg input{padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-size:0.85rem;color:var(--text);background:var(--white);min-width:140px;}
+    .fg select[multiple]{height:76px;}
+
+    .btn{padding:7px 16px;border:none;border-radius:5px;cursor:pointer;font-size:0.85rem;font-weight:600;transition:all .15s;white-space:nowrap;}
+    .btn-p{background:var(--teal);color:white;} .btn-p:hover{background:#008a93;}
+    .btn-e{background:var(--white);color:var(--blue);border:1px solid var(--border);} .btn-e:hover{background:var(--light);}
+    .btn-s{background:var(--navy);color:white;}
+    .btn-d{background:var(--white);color:var(--red);border:1px solid var(--border);}
+
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px;}
+    .kpi{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:18px 20px;border-top:3px solid var(--teal);}
+    .kpi.ab{border-top-color:var(--blue);} .kpi.ao{border-top-color:var(--orange);} .kpi.an{border-top-color:var(--navy);}
+    .kl{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+    .kv{font-size:1.9rem;font-weight:700;color:var(--navy);line-height:1;}
+    .ks{font-size:.75rem;color:var(--muted);margin-top:4px;}
+    .kd{font-size:.78rem;margin-top:6px;font-weight:600;}
+    .kd.up{color:var(--green);} .kd.dn{color:var(--red);}
+
+    .cr{display:grid;gap:14px;margin-bottom:20px;}
+    .c1{grid-template-columns:1fr;}
+    .c2{grid-template-columns:1fr 1fr;}
+    .c4{grid-template-columns:1fr 1fr 1fr 1fr;}
+    .cc{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:18px 20px;}
+    .cc h3{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;}
+    .ctr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+    .ctr h3{margin-bottom:0;}
+
+    .tc{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:18px 20px;margin-bottom:20px;}
+    .th{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+    .th h3{font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .ta{display:flex;gap:8px;}
+    .tf{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:10px 0 14px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+    .tf .fg select{min-width:120px;height:auto;}
+    .tf .fg select[multiple]{height:68px;}
+
+    table{width:100%;border-collapse:collapse;font-size:.85rem;}
+    thead th{text-align:left;padding:9px 12px;background:var(--light);color:var(--muted);font-size:.72rem;text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);}
+    tbody tr{border-bottom:1px solid #f0f2f6;}
+    tbody tr:hover{background:#f8fafc;}
+    tbody td{padding:9px 12px;}
+
+    .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:700;}
+    .b-ohl{background:#e3edf8;color:#1B4F8A;}
+    .b-con{background:#e3f5ee;color:#00875A;}
+    .b-tce{background:#fff0eb;color:#c44a1a;}
+    .b-sft{background:#f0ebff;color:#5a2d9c;}
+
+    .sl{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:20px 0 10px;display:flex;align-items:center;gap:8px;}
+    .sl::after{content:'';flex:1;height:1px;background:var(--border);}
+
+    .mdef{background:#e8f4f5;border-left:3px solid var(--teal);border-radius:0 6px 6px 0;padding:8px 12px;font-size:.78rem;color:var(--text);margin-bottom:16px;line-height:1.6;}
+
+    /* Chart legend key */
+    .chart-key{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+    .chart-key-item{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--text);}
+    .chart-key-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+    .mo{display:none;position:fixed;inset:0;background:rgba(15,35,65,.55);z-index:200;align-items:center;justify-content:center;}
+    .mo.open{display:flex;}
+    .md{background:white;border-radius:10px;padding:28px;width:400px;box-shadow:0 12px 40px rgba(0,0,0,.2);}
+    .md h3{font-size:1rem;color:var(--navy);margin-bottom:18px;}
+    .fr{margin-bottom:14px;}
+    .fr label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+    .fr select,.fr input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-size:.875rem;}
+    .mf{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+
+    @media(max-width:1100px){.c4{grid-template-columns:1fr 1fr;}}
+    @media(max-width:700px){.c2,.c4{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hl">
+    <div class="logo">🔦</div>
+    <div><h1>Lighthouse Adoption Dashboard</h1><div class="sub">Internal Analytics Platform</div></div>
+  </div>
+  <div class="hr">Last updated: 13 Apr 2026, 09:14</div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('tab1',this)">Platform Usage Overview</button>
+  <button class="tab-btn" onclick="switchTab('tab2',this)">User Interaction Patterns</button>
+  <button class="tab-btn" onclick="switchTab('tab3',this)">Scope Activity</button>
+</div>
+
+<!-- ══════════ TAB 1 ══════════ -->
+<div id="tab1" class="tab-content active">
+
+  <div class="tc">
+    <div class="th">
+      <h3>User Details Table</h3>
+      <div class="ta">
+        <button class="btn btn-e" onclick="exportCSV('users')">⬇ Export CSV</button>
+        <button class="btn btn-e" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-s" onclick="openModal()">⏱ Schedule Report</button>
+      </div>
+    </div>
+    <div class="tf">
+      <div class="fg"><label>PF</label>
+        <select multiple id="t1pf" onchange="filterTable('utb','t1pf','t1gl')">
+          <option selected value="OHL">OHL</option>
+          <option selected value="Consumables">Consumables</option>
+          <option selected value="TCEE">TCEE</option>
+          <option selected value="Softlines">Softlines</option>
+        </select>
+      </div>
+      <div class="fg"><label>GL Code</label>
+        <select multiple id="t1gl" onchange="filterTable('utb','t1pf','t1gl')">
+          <option selected value="GL001">GL001</option>
+          <option selected value="GL002">GL002</option>
+          <option selected value="GL003">GL003</option>
+          <option selected value="GL004">GL004</option>
+        </select>
+      </div>
+      <button class="btn btn-p" onclick="resetFilter('t1pf','t1gl','utb')">Reset</button>
+    </div>
+    <table><thead><tr><th>User Alias</th><th>PF</th><th>GL</th><th>Last Accessed</th><th>Time Spent</th><th>Sessions (30d)</th></tr></thead>
+    <tbody id="utb"></tbody></table>
+  </div>
+
+  <!-- Usage by GL & PF — directly below user table -->
+  <div class="sl">Usage by GL &amp; PF</div>
+  <div class="cr c4">
+    <div class="cc"><h3>Users by GL — OHL</h3><canvas id="glOHL" height="200"></canvas></div>
+    <div class="cc"><h3>Users by GL — Consumables</h3><canvas id="glCon" height="200"></canvas></div>
+    <div class="cc"><h3>Users by GL — TCEE</h3><canvas id="glTCE" height="200"></canvas></div>
+    <div class="cc"><h3>Users by GL — Softlines</h3><canvas id="glSft" height="200"></canvas></div>
+  </div>
+
+  <div class="sl">Platform Metrics</div>
+
+  <div class="filter-bar">
+    <div class="fg"><label>PF</label>
+      <select multiple><option selected>OHL</option><option selected>Consumables</option><option selected>TCEE</option><option selected>Softlines</option></select>
+    </div>
+    <div class="fg"><label>GL Code</label>
+      <select multiple><option selected>GL001</option><option selected>GL002</option><option selected>GL003</option><option selected>GL004</option></select>
+    </div>
+    <div class="fg"><label>Timeframe</label>
+      <select id="tf1" onchange="toggleCustom('tf1','cr1a','cr1b')">
+        <option>Last 7 days</option><option selected>Last 30 days</option>
+        <option>Last 90 days</option><option>Quarter-to-date</option>
+        <option>Year-to-date</option><option>Custom range</option>
+      </select>
+    </div>
+    <div class="fg" id="cr1a" style="display:none"><label>From</label><input type="date"/></div>
+    <div class="fg" id="cr1b" style="display:none"><label>To</label><input type="date"/></div>
+    <button class="btn btn-p" style="align-self:flex-end">Apply Filters</button>
+  </div>
+
+  <div class="mdef">
+    <strong>DAU</strong> = unique users accessing Lighthouse at least once, for &gt;20 seconds, in a given day &nbsp;·&nbsp;
+    <strong>MAU</strong> = unique users in a calendar month &nbsp;·&nbsp;
+    <strong>QAU</strong> = unique users in a calendar quarter
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kl">DAU (Today)</div><div class="kv">312</div><div class="ks">Unique users &gt;20s session</div><div class="kd up">▲ 8% vs yesterday</div></div>
+    <div class="kpi ab"><div class="kl">MAU (Apr '26)</div><div class="kv">1,284</div><div class="ks">Unique users this month</div><div class="kd up">▲ 12% vs Mar '26</div></div>
+    <div class="kpi ao"><div class="kl">QAU (Q2 '26)</div><div class="kv">2,841</div><div class="ks">Unique users this quarter</div><div class="kd up">▲ 18% vs Q1 '26</div></div>
+    <div class="kpi an"><div class="kl">Avg. Session Duration</div><div class="kv">24m</div><div class="ks">Per active user</div><div class="kd up">▲ 3m vs prev period</div></div>
+  </div>
+
+  <div class="sl">Trend Analysis</div>
+  <div class="cr c1">
+    <div class="cc">
+      <div class="ctr"><h3>Daily Active Users (DAU) — Last 30 Days</h3><button class="btn btn-e" onclick="exportCSV('users')">⬇ CSV</button></div>
+      <canvas id="dauChart" height="70"></canvas>
+    </div>
+  </div>
+  <div class="cr c2">
+    <div class="cc"><h3>Monthly Active Users (MAU)</h3><canvas id="mauChart" height="140"></canvas></div>
+    <div class="cc"><h3>Quarterly Active Users (QAU)</h3><canvas id="qauChart" height="140"></canvas></div>
+  </div>
+
+  <div class="sl">Retention</div>
+  <div class="cr c1">
+    <div class="cc">
+      <div class="ctr">
+        <h3>Monthly Retention — Cohort: Users Active in Jan '26</h3>
+        <span style="font-size:.75rem;color:var(--muted)">Users who used Lighthouse in Jan '26, still active each subsequent month</span>
+      </div>
+      <canvas id="retChart" height="70"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB 2 ══════════ -->
+<div id="tab2" class="tab-content">
+
+  <div class="tc">
+    <div class="th">
+      <h3>Action Log</h3>
+      <div class="ta">
+        <button class="btn btn-e" onclick="exportCSV('actions')">⬇ Export CSV</button>
+        <button class="btn btn-e" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-s" onclick="openModal()">⏱ Schedule Report</button>
+      </div>
+    </div>
+    <div class="tf">
+      <div class="fg"><label>PF</label>
+        <select multiple id="t2pf" onchange="filterTable('atb','t2pf','t2gl','t2ac')">
+          <option selected value="OHL">OHL</option><option selected value="Consumables">Consumables</option>
+          <option selected value="TCEE">TCEE</option><option selected value="Softlines">Softlines</option>
+        </select>
+      </div>
+      <div class="fg"><label>GL Code</label>
+        <select multiple id="t2gl" onchange="filterTable('atb','t2pf','t2gl','t2ac')">
+          <option selected value="GL001">GL001</option><option selected value="GL002">GL002</option>
+          <option selected value="GL003">GL003</option><option selected value="GL004">GL004</option>
+        </select>
+      </div>
+      <div class="fg"><label>Action Type</label>
+        <select id="t2ac" onchange="filterTable('atb','t2pf','t2gl','t2ac')">
+          <option value="">All Actions</option><option>Clicks</option><option>Screenshots</option>
+          <option>Exports</option><option>Searches</option><option>Filter Changes</option>
+        </select>
+      </div>
+      <button class="btn btn-p" onclick="resetFilter('t2pf','t2gl','atb','t2ac')">Reset</button>
+    </div>
+    <table><thead><tr><th>User</th><th>Date</th><th>PF</th><th>GL</th><th>Action Type</th><th>Count</th></tr></thead>
+    <tbody id="atb"></tbody></table>
+  </div>
+
+  <div class="sl">Interaction Metrics</div>
+
+  <div class="filter-bar">
+    <div class="fg"><label>PF</label>
+      <select multiple><option selected>OHL</option><option selected>Consumables</option><option selected>TCEE</option><option selected>Softlines</option></select>
+    </div>
+    <div class="fg"><label>GL Code</label>
+      <select multiple><option selected>GL001</option><option selected>GL002</option><option selected>GL003</option><option selected>GL004</option></select>
+    </div>
+    <div class="fg"><label>Timeframe</label>
+      <select><option>Last 7 days</option><option selected>Last 30 days</option><option>Last 90 days</option><option>Quarter-to-date</option><option>Year-to-date</option></select>
+    </div>
+    <div class="fg"><label>Action Type</label>
+      <select><option value="">All Actions</option><option>Clicks</option><option>Screenshots</option><option>Exports</option><option>Searches</option><option>Filter Changes</option></select>
+    </div>
+    <button class="btn btn-p" style="align-self:flex-end">Apply Filters</button>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kl">Total Actions (30d)</div><div class="kv">18,432</div><div class="kd up">▲ 9% vs prev period</div></div>
+    <div class="kpi ab"><div class="kl">Avg Actions / User</div><div class="kv">14.4</div><div class="kd up">▲ 1.2 vs prev period</div></div>
+    <div class="kpi ao"><div class="kl">Most Common Action</div><div class="kv" style="font-size:1.2rem;padding-top:4px">Clicks</div><div class="ks">45% of all actions</div></div>
+    <div class="kpi an"><div class="kl">Screenshot Rate</div><div class="kv">15%</div><div class="kd dn">▼ 1% vs prev period</div></div>
+  </div>
+
+    <div style="margin-bottom:20px;">
+    <div class="cc" style="max-width:380px;">
+      <h3>Action Type Distribution</h3>
+      <canvas id="pieChart" height="160"></canvas>
+    </div>
+  </div>
+
+
+  <div class="sl">Action Type by GL — Per PF</div>
+
+  <!-- Shared key for the 4 stacked charts -->
+  <div class="chart-key" id="stackKey"></div>
+
+  <div class="cr c4">
+    <div class="cc"><h3>Action by GL — OHL</h3><canvas id="stOHL" height="220"></canvas></div>
+    <div class="cc"><h3>Action by GL — Consumables</h3><canvas id="stCon" height="220"></canvas></div>
+    <div class="cc"><h3>Action by GL — TCEE</h3><canvas id="stTCE" height="220"></canvas></div>
+    <div class="cc"><h3>Action by GL — Softlines</h3><canvas id="stSft" height="220"></canvas></div>
+  </div>
+</div>
+
+<!-- ══════════ TAB 3 ══════════ -->
+<div id="tab3" class="tab-content">
+
+  <div class="tc">
+    <div class="th">
+      <h3>Scope Activity Details</h3>
+      <div class="ta">
+        <button class="btn btn-e" onclick="exportCSV('scopes')">⬇ Export CSV</button>
+        <button class="btn btn-e" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn btn-s" onclick="openModal()">⏱ Schedule Report</button>
+      </div>
+    </div>
+    <div class="tf">
+      <div class="fg"><label>PF</label>
+        <select multiple id="t3pf" onchange="filterTable('stb','t3pf','t3gl')">
+          <option selected value="OHL">OHL</option><option selected value="Consumables">Consumables</option>
+          <option selected value="TCEE">TCEE</option><option selected value="Softlines">Softlines</option>
+        </select>
+      </div>
+      <div class="fg"><label>GL Code</label>
+        <select multiple id="t3gl" onchange="filterTable('stb','t3pf','t3gl')">
+          <option selected value="GL001">GL001</option><option selected value="GL002">GL002</option>
+          <option selected value="GL003">GL003</option><option selected value="GL004">GL004</option>
+        </select>
+      </div>
+      <button class="btn btn-p" onclick="resetFilter('t3pf','t3gl','stb')">Reset</button>
+    </div>
+    <table><thead><tr><th>Scope Name</th><th>PF</th><th>GL</th><th>Views</th><th>Edits</th><th>Last Activity</th></tr></thead>
+    <tbody id="stb"></tbody></table>
+  </div>
+
+  <div class="sl">Scope Metrics</div>
+
+  <div class="filter-bar">
+    <div class="fg"><label>PF</label>
+      <select multiple><option selected>OHL</option><option selected>Consumables</option><option selected>TCEE</option><option selected>Softlines</option></select>
+    </div>
+    <div class="fg"><label>GL Code</label>
+      <select multiple><option selected>GL001</option><option selected>GL002</option><option selected>GL003</option><option selected>GL004</option></select>
+    </div>
+    <div class="fg"><label>Timeframe</label>
+      <select><option>Last 7 days</option><option selected>Last 30 days</option><option>Last 90 days</option><option>Quarter-to-date</option><option>Year-to-date</option></select>
+    </div>
+    <button class="btn btn-p" style="align-self:flex-end">Apply Filters</button>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kl">Total Scopes</div><div class="kv">342</div><div class="kd up">▲ 5% vs prev period</div></div>
+    <div class="kpi ab"><div class="kl">Active Scopes</div><div class="kv">218</div><div class="kd up">▲ 9% vs prev period</div></div>
+    <div class="kpi ao"><div class="kl">Avg. Scope Views</div><div class="kv">47</div><div class="kd up">▲ 6% vs prev period</div></div>
+    <div class="kpi an"><div class="kl">Scope Edits</div><div class="kv">1,103</div><div class="kd dn">▼ 1% vs prev period</div></div>
+  </div>
+
+  <div class="cr c1">
+    <div class="cc"><h3>Scope Activity by PF</h3><canvas id="scpPF" height="100"></canvas></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="modal">
+  <div class="md">
+    <h3>Schedule Automated Report</h3>
+    <div class="fr"><label>Frequency</label><select><option>Daily</option><option>Weekly</option><option>Monthly</option></select></div>
+    <div class="fr"><label>Format</label><select><option>CSV</option><option>Excel</option><option>PDF</option></select></div>
+    <div class="fr"><label>Recipients</label><input type="email" placeholder="[email]"/></div>
+    <div class="mf">
+      <button class="btn btn-d" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-p" onclick="closeModal()">Schedule</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(id,btn){
+    document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+  function toggleCustom(s,a,b){
+    var show=document.getElementById(s).value==='Custom range';
+    document.getElementById(a).style.display=show?'flex':'none';
+    document.getElementById(b).style.display=show?'flex':'none';
+  }
+  function openModal(){document.getElementById('modal').classList.add('open');}
+  function closeModal(){document.getElementById('modal').classList.remove('open');}
+  document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+  function getSel(id){
+    return Array.from(document.getElementById(id).options).filter(function(o){return o.selected;}).map(function(o){return o.value;});
+  }
+  function filterTable(tbody,pfId,glId,acId){
+    var pfs=getSel(pfId),gls=getSel(glId);
+    var ac=acId?document.getElementById(acId).value:'';
+    document.querySelectorAll('#'+tbody+' tr').forEach(function(r){
+      var ok=pfs.includes(r.dataset.pf)&&gls.includes(r.dataset.gl)&&(!ac||r.dataset.ac===ac);
+      r.style.display=ok?'':'none';
+    });
+  }
+  function resetFilter(pfId,glId,tbody,acId){
+    Array.from(document.getElementById(pfId).options).forEach(function(o){o.selected=true;});
+    Array.from(document.getElementById(glId).options).forEach(function(o){o.selected=true;});
+    if(acId)document.getElementById(acId).value='';
+    filterTable(tbody,pfId,glId,acId);
+  }
+
+  // ── Data ──────────────────────────────────────────────
+  var PFB={'OHL':'b-ohl','Consumables':'b-con','TCEE':'b-tce','Softlines':'b-sft'};
+
+  var users=[
+    {alias:'aadbalan',pf:'OHL',        gl:'GL001',last:'2026-04-13 09:14',time:'42m',sess:18},
+        {alias:'jsmith',  pf:'Consumables',gl:'GL002',last:'2026-04-12 14:30',time:'18m',sess:9 },
+    {alias:'lwang',   pf:'TCEE',       gl:'GL003',last:'2026-04-12 11:05',time:'55m',sess:22},
+    {alias:'mgarcia', pf:'Softlines',  gl:'GL004',last:'2026-04-11 16:22',time:'31m',sess:14},
+    {alias:'tpatel',  pf:'OHL',        gl:'GL001',last:'2026-04-11 10:00',time:'27m',sess:11},
+    {alias:'rkim',    pf:'Consumables',gl:'GL002',last:'2026-04-10 13:45',time:'14m',sess:6 },
+    {alias:'amuller', pf:'TCEE',       gl:'GL003',last:'2026-04-10 09:30',time:'63m',sess:25},
+    {alias:'bchen',   pf:'Softlines',  gl:'GL004',last:'2026-04-09 15:10',time:'22m',sess:8 },
+  ];
+  document.getElementById('utb').innerHTML=users.map(function(u){
+    return '<tr data-pf="'+u.pf+'" data-gl="'+u.gl+'"><td>'+u.alias+'</td>'+
+      '<td><span class="badge '+PFB[u.pf]+'">'+u.pf+'</span></td>'+
+      '<td>'+u.gl+'</td><td>'+u.last+'</td><td>'+u.time+'</td><td>'+u.sess+'</td></tr>';
+  }).join('');
+
+  var actions=[
+    {user:'aadbalan',date:'2026-04-13',pf:'OHL',        gl:'GL001',ac:'Clicks',        count:84},
+    {user:'jsmith',  date:'2026-04-12',pf:'Consumables',gl:'GL002',ac:'Screenshots',   count:12},
+    {user:'lwang',   date:'2026-04-12',pf:'TCEE',       gl:'GL003',ac:'Exports',       count:7 },
+    {user:'mgarcia', date:'2026-04-11',pf:'Softlines',  gl:'GL004',ac:'Searches',      count:33},
+    {user:'tpatel',  date:'2026-04-11',pf:'OHL',        gl:'GL001',ac:'Filter Changes',count:19},
+    {user:'rkim',    date:'2026-04-10',pf:'Consumables',gl:'GL002',ac:'Clicks',        count:61},
+    {user:'amuller', date:'2026-04-10',pf:'TCEE',       gl:'GL003',ac:'Screenshots',   count:5 },
+    {user:'bchen',   date:'2026-04-09',pf:'Softlines',  gl:'GL004',ac:'Exports',       count:9 },
+  ];
+  document.getElementById('atb').innerHTML=actions.map(function(a){
+    return '<tr data-pf="'+a.pf+'" data-gl="'+a.gl+'" data-ac="'+a.ac+'"><td>'+a.user+'</td>'+
+      '<td>'+a.date+'</td><td><span class="badge '+PFB[a.pf]+'">'+a.pf+'</span></td>'+
+      '<td>'+a.gl+'</td><td>'+a.ac+'</td><td>'+a.count+'</td></tr>';
+  }).join('');
+
+  // Scope names: PF · GL · Vendor Code
+  var scopes=[
+    {name:'OHL · GL001 · VND-0041',  pf:'OHL',        gl:'GL001',views:142,edits:38,last:'2026-04-13'},
+    {name:'CONS · GL002 · VND-0087', pf:'Consumables',gl:'GL002',views:98, edits:21,last:'2026-04-12'},
+    {name:'TCEE · GL003 · VND-0023', pf:'TCEE',       gl:'GL003',views:77, edits:14,last:'2026-04-11'},
+    {name:'SFTL · GL004 · VND-0065', pf:'Softlines',  gl:'GL004',views:55, edits:9, last:'2026-04-10'},
+    {name:'OHL · GL001 · VND-0102',  pf:'OHL',        gl:'GL001',views:210,edits:52,last:'2026-04-09'},
+    {name:'CONS · GL002 · VND-0034', pf:'Consumables',gl:'GL002',views:88, edits:17,last:'2026-04-08'},
+    {name:'TCEE · GL003 · VND-0078', pf:'TCEE',       gl:'GL003',views:63, edits:11,last:'2026-04-07'},
+    {name:'SFTL · GL004 · VND-0019', pf:'Softlines',  gl:'GL004',views:44, edits:6, last:'2026-04-06'},
+  ];
+  document.getElementById('stb').innerHTML=scopes.map(function(s){
+    return '<tr data-pf="'+s.pf+'" data-gl="'+s.gl+'"><td>'+s.name+'</td>'+
+      '<td><span class="badge '+PFB[s.pf]+'">'+s.pf+'</span></td>'+
+      '<td>'+s.gl+'</td><td>'+s.views+'</td><td>'+s.edits+'</td><td>'+s.last+'</td></tr>';
+  }).join('');
+
+  // ── Charts ────────────────────────────────────────────
+  var T='#00A3AD',B='#1B4F8A',O='#FF6B35',N='#0F2341',G='#00875A',P='#9B59B6';
+  var GL=['GL001','GL002','GL003','GL004'];
+  var AT=['Clicks','Screenshots','Exports','Searches','Filter Changes'];
+  var AC=[T,B,O,G,P];
+
+  // Build shared key for stacked charts
+  var keyEl=document.getElementById('stackKey');
+  AT.forEach(function(a,i){
+    var item=document.createElement('div');
+    item.className='chart-key-item';
+    item.innerHTML='<div class="chart-key-dot" style="background:'+AC[i]+'"></div>'+a;
+    keyEl.appendChild(item);
+  });
+
+  // DAU
+  var dauL=[];
+  for(var i=29;i>=0;i--){var d=new Date('2026-04-13');d.setDate(d.getDate()-i);dauL.push((d.getMonth()+1)+'/'+d.getDate());}
+  new Chart(document.getElementById('dauChart'),{
+    type:'line',
+    data:{labels:dauL,datasets:[{label:'DAU',
+      data:dauL.map(function(){return Math.floor(Math.random()*120+250);}),
+      borderColor:T,backgroundColor:'rgba(0,163,173,0.08)',tension:0.4,fill:true,pointRadius:2}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'#f0f2f6'}},x:{grid:{display:false}}}}
+  });
+
+  // MAU
+  new Chart(document.getElementById('mauChart'),{
+    type:'bar',
+    data:{labels:["Oct '25","Nov '25","Dec '25","Jan '26","Feb '26","Mar '26","Apr '26"],
+      datasets:[{label:'MAU',data:[820,910,870,980,1050,1145,1284],backgroundColor:B,borderRadius:4}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'#f0f2f6'}},x:{grid:{display:false}}}}
+  });
+
+  // QAU
+  new Chart(document.getElementById('qauChart'),{
+    type:'bar',
+    data:{labels:["Q3 '24","Q4 '24","Q1 '25","Q2 '25","Q3 '25","Q4 '25","Q1 '26","Q2 '26"],
+      datasets:[{label:'QAU',data:[1100,1280,1450,1620,1780,2050,2410,2841],backgroundColor:O,borderRadius:4}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'#f0f2f6'}},x:{grid:{display:false}}}}
+  });
+
+  // Retention
+  new Chart(document.getElementById('retChart'),{
+    type:'line',
+    data:{labels:["Jan '26","Feb '26","Mar '26","Apr '26"],
+      datasets:[
+        {label:'Retained Users',data:[980,812,741,698],borderColor:G,backgroundColor:'rgba(0,135,90,0.08)',tension:0.3,fill:true,pointRadius:5,pointBackgroundColor:G},
+        {label:'Retention %',data:[100,82.9,75.6,71.2],borderColor:O,backgroundColor:'transparent',tension:0.3,pointRadius:5,pointBackgroundColor:O,yAxisID:'y2'}
+      ]},
+    options:{plugins:{legend:{position:'top'}},scales:{
+      y:{beginAtZero:false,title:{display:true,text:'Users'},grid:{color:'#f0f2f6'}},
+      y2:{position:'right',min:0,max:100,title:{display:true,text:'Retention %'},grid:{display:false}},
+      x:{grid:{display:false}}
+    }}
+  });
+
+  // Usage by GL — 4 PF charts
+  var glD={'OHL':[312,198,145,87],'Consumables':[201,267,133,99],'TCEE':[178,143,210,115],'Softlines':[95,130,88,162]};
+  var glC={'OHL':T,'Consumables':B,'TCEE':O,'Softlines':P};
+  [['glOHL','OHL'],['glCon','Consumables'],['glTCE','TCEE'],['glSft','Softlines']].forEach(function(p){
+    new Chart(document.getElementById(p[0]),{
+      type:'bar',
+      data:{labels:GL,datasets:[{label:'Users',data:glD[p[1]],backgroundColor:glC[p[1]],borderRadius:4}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f0f2f6'}},x:{grid:{display:false}}}}
+    });
+  });
+
+  // Pie
+  new Chart(document.getElementById('pieChart'),{
+    type:'pie',
+    data:{labels:AT,datasets:[{data:[45,15,10,20,10],backgroundColor:AC}]},
+    options:{plugins:{legend:{position:'right'}}}
+  });
+
+  // Stacked action by GL — 4 PF charts (legend hidden, shared key above)
+  var stD={
+    'OHL':        {Clicks:[120,80,60,40],Screenshots:[30,20,15,10],Exports:[20,12,8,5], Searches:[55,35,25,18],'Filter Changes':[25,15,10,8]},
+    'Consumables':{Clicks:[90,110,70,55],Screenshots:[22,28,18,12],Exports:[15,18,10,7],Searches:[40,50,30,22],'Filter Changes':[18,22,14,9]},
+    'TCEE':       {Clicks:[70,60,95,50], Screenshots:[18,15,24,12],Exports:[12,10,16,8],Searches:[30,28,42,20],'Filter Changes':[14,12,18,8]},
+    'Softlines':  {Clicks:[45,65,40,80], Screenshots:[12,18,10,20],Exports:[8,12,7,14], Searches:[20,30,18,35],'Filter Changes':[9,14,8,16]}
+  };
+  [['stOHL','OHL'],['stCon','Consumables'],['stTCE','TCEE'],['stSft','Softlines']].forEach(function(p){
+    new Chart(document.getElementById(p[0]),{
+      type:'bar',
+      data:{labels:GL,datasets:AT.map(function(a,i){return{label:a,data:stD[p[1]][a],backgroundColor:AC[i]};})},
+      options:{
+        plugins:{legend:{display:false}},
+        scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:'#f0f2f6'}}}
+      }
+    });
+  });
+
+  // Scope by PF
+  new Chart(document.getElementById('scpPF'),{
+    type:'bar',
+    data:{labels:['OHL','Consumables','TCEE','Softlines'],
+      datasets:[
+        {label:'Views',data:[352,265,177,144],backgroundColor:T,borderRadius:4},
+        {label:'Edits',data:[90,70,45,30],backgroundColor:N,borderRadius:4}
+      ]},
+    options:{plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true,grid:{color:'#f0f2f6'}},x:{grid:{display:false}}}}
+  });
+
+  // ── Export ────────────────────────────────────────────
+  function exportCSV(type){
+    var rows,filename;
+    if(type==='users'){
+      rows=[['User Alias','PF','GL','Last Accessed','Time Spent','Sessions']];
+      users.forEach(function(u){rows.push([u.alias,u.pf,u.gl,u.last,u.time,u.sess]);});
+      filename='lighthouse_users.csv';
+    } else if(type==='actions'){
+      rows=[['User','Date','PF','GL','Action Type','Count']];
+      actions.forEach(function(a){rows.push([a.user,a.date,a.pf,a.gl,a.ac,a.count]);});
+      filename='lighthouse_actions.csv';
+    } else {
+      rows=[['Scope Name','PF','GL','Views','Edits','Last Activity']];
+      scopes.forEach(function(s){rows.push([s.name,s.pf,s.gl,s.views,s.edits,s.last]);});
+      filename='lighthouse_scopes.csv';
+    }
+    var csv=rows.map(function(r){return r.join(',');}).join('\n');
+    var a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download=filename; a.click();
+  }
+
+  function exportPDF(){
+    alert('PDF export: connect html2pdf.js for a real implementation.');
+  }
+</script>
+</body>
+</html>
+
